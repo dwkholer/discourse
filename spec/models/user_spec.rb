@@ -157,6 +157,18 @@ RSpec.describe User do
         expect(SidebarSectionLink.exists?(linkable_type: "Tag", user_id: user.id)).to eq(false)
       end
     end
+
+    describe "#change_display_name" do
+      it "enqueues a job to retroactively update display name in quotes, etc." do
+        expect_enqueued_with(
+          job: :change_display_name,
+          args: {
+            old_name: "Bruce Wayne",
+            new_name: "Batman",
+          },
+        ) { user.update(name: "Batman") }
+      end
+    end
   end
 
   describe "Validations" do
