@@ -13,6 +13,7 @@ function ajax(opts, messageBusConnectivity, appState) {
       handleLogoff(xhr);
       oldComplete(xhr, stat);
 
+      console.log(`DONE:`, stat, xhr.readyState)
       messageBusConnectivity.setConnectivity(
         xhr.readyState === 4 || stat === "abort" || appState.background
       );
