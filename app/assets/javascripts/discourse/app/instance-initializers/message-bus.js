@@ -33,6 +33,12 @@ export default {
       return;
     }
 
+    console.log(document.visibilityState);
+
+    document.addEventListener('visibilitychange', () => {
+      console.log(document.visibilityState);
+    });
+
     const messageBus = owner.lookup("service:message-bus"),
       user = owner.lookup("service:current-user"),
       siteSettings = owner.lookup("service:site-settings"),
