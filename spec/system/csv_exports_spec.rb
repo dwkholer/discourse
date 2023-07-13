@@ -202,7 +202,7 @@ RSpec.describe "CSV Exports", type: :system do
     fab!(:screened_email_1) { Fabricate(:screened_email) }
     fab!(:screened_email_2) { Fabricate(:screened_email) }
 
-    xit "exports data" do
+    it "exports data" do
       visit "admin/logs/screened_emails"
       click_button "Export"
 
@@ -239,7 +239,7 @@ RSpec.describe "CSV Exports", type: :system do
     fab!(:screened_ip_1) { Fabricate(:screened_ip_address) }
     fab!(:screened_ip_2) { Fabricate(:screened_ip_address) }
 
-    xit "exports data" do
+    it "exports data" do
       visit "admin/logs/screened_ip_addresses"
       click_button "Export"
 
