@@ -468,6 +468,7 @@ class ApplicationController < ActionController::Base
       request.env[NO_UNOFFICIAL_PLUGINS] = safe_mode.include?(NO_UNOFFICIAL_PLUGINS) ||
         safe_mode.include?(LEGACY_NO_UNOFFICIAL_PLUGINS)
     end
+    request.env[NO_THEMES] = true
   end
 
   def handle_theme
