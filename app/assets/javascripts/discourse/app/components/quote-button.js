@@ -1,28 +1,27 @@
-import afterTransition from "discourse/lib/after-transition";
-import { propertyEqual } from "discourse/lib/computed";
 import { ajax } from "discourse/lib/ajax";
-import { popupAjaxError } from "discourse/lib/ajax-error";
 import {
   postUrl,
   selectedElement,
   selectedRange,
   selectedText,
   setCaretPosition,
-  translateModKey,
 } from "discourse/lib/utilities";
 import Component from "@ember/component";
-import I18n from "I18n";
 import { INPUT_DELAY } from "discourse-common/config/environment";
 import KeyEnterEscape from "discourse/mixins/key-enter-escape";
 import Sharing from "discourse/lib/sharing";
-import { action } from "@ember/object";
+import { action, computed } from "@ember/object";
 import { alias } from "@ember/object/computed";
-import discourseComputed from "discourse-common/utils/decorators";
+import discourseComputed, { bind } from "discourse-common/utils/decorators";
 import discourseDebounce from "discourse-common/lib/debounce";
 import { getAbsoluteURL } from "discourse-common/lib/get-url";
 import { next, schedule } from "@ember/runloop";
 import toMarkdown from "discourse/lib/to-markdown";
 import escapeRegExp from "discourse-common/utils/escape-regexp";
+import { createPopper } from "@popperjs/core";
+import virtualElementFromTextRange from "discourse/lib/virtual-element-from-text-range";
+import { inject as service } from "@ember/service";
+import FastEditModal from "discourse/components/modal/fast-edit";
 
 function getQuoteTitle(element) {
   const titleEl = element.querySelector(".title");
@@ -38,13 +37,15 @@ function getQuoteTitle(element) {
   return titleEl.textContent.trim().replace(/:$/, "");
 }
 
-function fixQuotes(str) {
-  // u+201c “
-  // u+201d ”
-  return str.replace(/[\u201C\u201D]/g, '"');
+export function fixQuotes(str) {
+  // u+201c, u+201d = “ ”
+  // u+2018, u+2019 = ‘ ’
+  return str.replace(/[\u201C\u201D]/g, '"').replace(/[\u2018\u2019]/g, "'");
 }
 
 export default Component.extend(KeyEnterEscape, {
+  modal: service(),
+
   classNames: ["quote-button"],
   classNameBindings: [
     "visible",
@@ -55,20 +56,19 @@ export default Component.extend(KeyEnterEscape, {
   animated: false,
   privateCategory: alias("topic.category.read_restricted"),
   editPost: null,
+  _popper: null,
+  popperPlacement: "top-start",
+  popperOffset: [0, 3],
 
   _isFastEditable: false,
   _displayFastEditInput: false,
-  _fastEditInitalSelection: null,
-  _fastEditNewSelection: null,
-  _isSavingFastEdit: false,
+  _fastEditInitialSelection: null,
   _canEditPost: false,
-  _saveEditButtonTitle: I18n.t("composer.title", {
-    modifier: translateModKey("Meta+"),
-  }),
 
   _isMouseDown: false,
   _reselected: false,
 
+  @bind
   _hideButton() {
     this.quoteState.clear();
     this.set("visible", false);
@@ -76,50 +76,13 @@ export default Component.extend(KeyEnterEscape, {
 
     this.set("_isFastEditable", false);
     this.set("_displayFastEditInput", false);
-    this.set("_fastEditInitalSelection", null);
-    this.set("_fastEditNewSelection", null);
-  },
-
-  _getRangeBoundaryRect(range, atEnd) {
-    // Don't mess with the original range as it results in weird behaviours
-    // where certain browsers will deselect the selection
-    const clone = range.cloneRange(range);
-
-    // create a marker element containing a single invisible character
-    const markerElement = document.createElement("span");
-    markerElement.appendChild(document.createTextNode("\ufeff"));
-
-    // on mobile, collapse the range at the end of the selection
-    if (atEnd) {
-      clone.collapse();
-    }
-    // insert the marker
-    clone.insertNode(markerElement);
-
-    // retrieve the position of the marker
-    const boundaryRect = markerElement.getBoundingClientRect();
-    boundaryRect.x += document.documentElement.scrollLeft;
-    boundaryRect.y += document.documentElement.scrollTop;
-
-    // remove the marker
-    const parent = markerElement.parentNode;
-    parent.removeChild(markerElement);
-
-    // merge back all text nodes so they don't get messed up
-    parent.normalize();
-
-    // work around Safari that would sometimes lose the selection
-    if (this.capabilities.isSafari) {
-      this._reselected = true;
-      window.getSelection().removeAllRanges();
-      window.getSelection().addRange(range);
-    }
-
-    return boundaryRect;
+    this.set("_fastEditInitialSelection", null);
+    this._teardownSelectionListeners();
   },
 
   _selectionChanged() {
     if (this._displayFastEditInput) {
+      this.textRange = virtualElementFromTextRange();
       return;
     }
 
@@ -189,28 +152,25 @@ export default Component.extend(KeyEnterEscape, {
     this.set("visible", quoteState.buffer.length > 0);
 
     if (this.siteSettings.enable_fast_edit) {
-      this.set(
-        "_canEditPost",
-        this.topic.postStream.findLoadedPost(postId)?.can_edit
-      );
+      this.set("_canEditPost", this.post?.can_edit);
 
       if (this._canEditPost) {
         const regexp = new RegExp(escapeRegExp(quoteState.buffer), "gi");
         const matches = cooked.innerHTML.match(regexp);
+        const non_ascii_regex = /[^\x00-\x7F]/;
 
         if (
           quoteState.buffer.length < 1 ||
           quoteState.buffer.includes("|") || // tables are too complex
           quoteState.buffer.match(/\n/g) || // linebreaks are too complex
-          matches?.length > 1 // duplicates are too complex
+          matches?.length > 1 || // duplicates are too complex
+          non_ascii_regex.test(quoteState.buffer) // non-ascii chars break fast-edit
         ) {
           this.set("_isFastEditable", false);
-          this.set("_fastEditInitalSelection", null);
-          this.set("_fastEditNewSelection", null);
+          this.set("_fastEditInitialSelection", null);
         } else if (matches?.length === 1) {
           this.set("_isFastEditable", true);
-          this.set("_fastEditInitalSelection", quoteState.buffer);
-          this.set("_fastEditNewSelection", quoteState.buffer);
+          this.set("_fastEditInitialSelection", quoteState.buffer);
         }
       }
     }
@@ -229,7 +189,10 @@ export default Component.extend(KeyEnterEscape, {
     const { isIOS, isAndroid, isOpera } = this.capabilities;
     const showAtEnd = isMobileDevice || isIOS || isAndroid || isOpera;
 
-    const boundaryPosition = this._getRangeBoundaryRect(firstRange, showAtEnd);
+    if (showAtEnd) {
+      this.popperPlacement = "bottom-start";
+      this.popperOffset = [0, 25];
+    }
 
     // change the position of the button
     schedule("afterRender", () => {
@@ -237,85 +200,26 @@ export default Component.extend(KeyEnterEscape, {
         return;
       }
 
-      let top = 0;
-      let left = 0;
-      const pxFromSelection = 5;
+      this.textRange = virtualElementFromTextRange();
+      this._setupSelectionListeners();
 
-      if (showAtEnd) {
-        // The selection-handles on iOS have a hit area of ~50px radius
-        // so we need to make sure our buttons are outside that radius
-        // Apply the same logic on all mobile devices for consistency
-
-        top = boundaryPosition.bottom + pxFromSelection;
-        left = boundaryPosition.left;
-
-        const safeRadius = 50;
-
-        const topicArea = document
-          .querySelector(".topic-area")
-          .getBoundingClientRect();
-        topicArea.x += document.documentElement.scrollLeft;
-        topicArea.y += document.documentElement.scrollTop;
-
-        const endHandlePosition = boundaryPosition;
-        const width = this.element.clientWidth;
-
-        const possiblePositions = [
+      this._popper = createPopper(this.textRange, this.element, {
+        placement: this.popperPlacement,
+        modifiers: [
           {
-            // move to left
-            top,
-            left: left - width - safeRadius,
+            name: "computeStyles",
+            options: {
+              adaptive: false,
+            },
           },
           {
-            // move to right
-            top,
-            left: left + safeRadius,
+            name: "offset",
+            options: {
+              offset: this.popperOffset,
+            },
           },
-          {
-            // centered below end handle
-            top: top + safeRadius,
-            left: left - width / 2,
-          },
-        ];
-
-        for (const pos of possiblePositions) {
-          // Ensure buttons are entirely within the .topic-area
-          pos.left = Math.max(topicArea.left, pos.left);
-          pos.left = Math.min(topicArea.right - width, pos.left);
-
-          let clearOfStartHandle = true;
-          if (isAndroid) {
-            // On android, the start-selection handle extends below the line, so we need to avoid it as well:
-            const startHandlePosition = this._getRangeBoundaryRect(
-              firstRange,
-              false
-            );
-
-            clearOfStartHandle =
-              pos.top - startHandlePosition.bottom >= safeRadius ||
-              pos.left + width <= startHandlePosition.left - safeRadius ||
-              pos.left >= startHandlePosition.left + safeRadius;
-          }
-
-          const clearOfEndHandle =
-            pos.top - endHandlePosition.top >= safeRadius ||
-            pos.left + width <= endHandlePosition.left - safeRadius ||
-            pos.left >= endHandlePosition.left + safeRadius;
-
-          if (clearOfStartHandle && clearOfEndHandle) {
-            left = pos.left;
-            top = pos.top;
-            break;
-          }
-        }
-      } else {
-        // Desktop
-        top =
-          boundaryPosition.top - this.element.clientHeight - pxFromSelection;
-        left = boundaryPosition.left;
-      }
-
-      Object.assign(this.element.style, { top: `${top}px`, left: `${left}px` });
+        ],
+      });
 
       if (!this.animated) {
         // We only enable CSS transitions after the initial positioning
@@ -323,6 +227,23 @@ export default Component.extend(KeyEnterEscape, {
         next(() => this.set("animated", true));
       }
     });
+  },
+
+  @bind
+  _updateRect() {
+    this.textRange?.updateRect();
+  },
+
+  _setupSelectionListeners() {
+    document.body.addEventListener("mouseup", this._updateRect);
+    window.addEventListener("scroll", this._updateRect);
+    document.scrollingElement.addEventListener("scroll", this._updateRect);
+  },
+
+  _teardownSelectionListeners() {
+    document.body.removeEventListener("mouseup", this._updateRect);
+    window.removeEventListener("scroll", this._updateRect);
+    document.scrollingElement.removeEventListener("scroll", this._updateRect);
   },
 
   didInsertElement() {
@@ -372,12 +293,19 @@ export default Component.extend(KeyEnterEscape, {
   },
 
   willDestroyElement() {
+    this._popper?.destroy();
     $(document)
       .off("mousedown.quote-button")
       .off("mouseup.quote-button")
       .off("selectionchange.quote-button");
     this.appEvents.off("quote-button:quote", this, "insertQuote");
     this.appEvents.off("quote-button:edit", this, "_toggleFastEditForm");
+    this._teardownSelectionListeners();
+  },
+
+  @computed("topic", "quoteState.postId")
+  get post() {
+    return this.topic.postStream.findLoadedPost(this.quoteState.postId);
   },
 
   @discourseComputed("topic.{isPrivateMessage,invisible,category}")
@@ -410,11 +338,11 @@ export default Component.extend(KeyEnterEscape, {
     return this.quoteSharingSources.length > 1;
   },
 
-  @discourseComputed("topic.{id,slug}", "quoteState")
-  shareUrl(topic, quoteState) {
-    const postId = quoteState.postId;
-    const postNumber = topic.postStream.findLoadedPost(postId).post_number;
-    return getAbsoluteURL(postUrl(topic.slug, topic.id, postNumber));
+  @computed("topic.{id,slug}", "post")
+  get shareUrl() {
+    return getAbsoluteURL(
+      postUrl(this.topic.slug, this.topic.id, this.post.post_number)
+    );
   },
 
   @discourseComputed(
@@ -428,112 +356,69 @@ export default Component.extend(KeyEnterEscape, {
     );
   },
 
-  _saveFastEditDisabled: propertyEqual(
-    "_fastEditInitalSelection",
-    "_fastEditNewSelection"
-  ),
-
   @action
   insertQuote() {
     this.attrs.selectText().then(() => this._hideButton());
   },
 
   @action
-  _toggleFastEditForm() {
+  async _toggleFastEditForm() {
     if (this._isFastEditable) {
-      this.toggleProperty("_displayFastEditInput");
+      if (this.site.desktopView) {
+        this.toggleProperty("_displayFastEditInput");
+      } else {
+        this.modal.show(FastEditModal, {
+          model: {
+            initialValue: this._fastEditInitialSelection,
+            post: this.post,
+          },
+        });
+        this._hideButton();
+      }
 
-      schedule("afterRender", () => {
-        if (this.site.mobileView) {
-          this.element.style.left = `${
-            (window.innerWidth - this.element.clientWidth) / 2
-          }px`;
-        }
-        document.querySelector("#fast-edit-input")?.focus();
-      });
-    } else {
-      const postId = this.quoteState.postId;
-      const postModel = this.topic.postStream.findLoadedPost(postId);
-      return ajax(`/posts/${postModel.id}`, { type: "GET", cache: false }).then(
-        (result) => {
-          let bestIndex = 0;
-          const rows = result.raw.split("\n");
-
-          // selecting even a part of the text of a list item will include
-          // "* " at the beginning of the buffer, we remove it to be able
-          // to find it in row
-          const buffer = fixQuotes(
-            this.quoteState.buffer.split("\n")[0].replace(/^\* /, "")
-          );
-
-          rows.some((row, index) => {
-            if (row.length && row.includes(buffer)) {
-              bestIndex = index;
-              return true;
-            }
-          });
-
-          this?.editPost(postModel);
-
-          afterTransition(document.querySelector("#reply-control"), () => {
-            const textarea = document.querySelector(".d-editor-input");
-            if (!textarea || this.isDestroyed || this.isDestroying) {
-              return;
-            }
-
-            // best index brings us to one row before as slice start from 1
-            // we add 1 to be at the beginning of next line, unless we start from top
-            setCaretPosition(
-              textarea,
-              rows.slice(0, bestIndex).join("\n").length +
-                (bestIndex > 0 ? 1 : 0)
-            );
-
-            // ensures we correctly scroll to caret and reloads composer
-            // if we do another selection/edit
-            textarea.blur();
-            textarea.focus();
-          });
-        }
-      );
+      return;
     }
-  },
 
-  @action
-  _saveFastEdit() {
-    const postId = this.quoteState?.postId;
-    const postModel = this.topic.postStream.findLoadedPost(postId);
+    const result = await ajax(`/posts/${this.post.id}`, { cache: false });
+    let bestIndex = 0;
+    const rows = result.raw.split("\n");
 
-    this.set("_isSavingFastEdit", true);
+    // selecting even a part of the text of a list item will include
+    // "* " at the beginning of the buffer, we remove it to be able
+    // to find it in row
+    const buffer = fixQuotes(
+      this.quoteState.buffer.split("\n")[0].replace(/^\* /, "")
+    );
 
-    return ajax(`/posts/${postModel.id}`, { type: "GET", cache: false })
-      .then((result) => {
-        const newRaw = result.raw.replace(
-          fixQuotes(this._fastEditInitalSelection),
-          fixQuotes(this._fastEditNewSelection)
+    rows.some((row, index) => {
+      if (row.length && row.includes(buffer)) {
+        bestIndex = index;
+        return true;
+      }
+    });
+
+    this.editPost(this.post);
+
+    document
+      .querySelector("#reply-control")
+      ?.addEventListener("transitionend", () => {
+        const textarea = document.querySelector(".d-editor-input");
+        if (!textarea || this.isDestroyed || this.isDestroying) {
+          return;
+        }
+
+        // best index brings us to one row before as slice start from 1
+        // we add 1 to be at the beginning of next line, unless we start from top
+        setCaretPosition(
+          textarea,
+          rows.slice(0, bestIndex).join("\n").length + (bestIndex > 0 ? 1 : 0)
         );
 
-        postModel
-          .save({ raw: newRaw })
-          .catch(popupAjaxError)
-          .finally(() => {
-            this.set("_isSavingFastEdit", false);
-            this._hideButton();
-          });
-      })
-      .catch(popupAjaxError);
-  },
-
-  @action
-  save() {
-    if (this._displayFastEditInput && !this._saveFastEditDisabled) {
-      this._saveFastEdit();
-    }
-  },
-
-  @action
-  cancelled() {
-    this._hideButton();
+        // ensures we correctly scroll to caret and reloads composer
+        // if we do another selection/edit
+        textarea.blur();
+        textarea.focus();
+      });
   },
 
   @action
