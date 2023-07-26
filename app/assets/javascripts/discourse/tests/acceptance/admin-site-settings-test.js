@@ -3,6 +3,7 @@ import {
   count,
   exists,
   query,
+  queryAll,
 } from "discourse/tests/helpers/qunit-helpers";
 import {
   click,
@@ -142,7 +143,7 @@ acceptance("Admin - Site Settings", function (needs) {
     await visit("admin/site_settings/category/basic?filter=menu");
     assert.strictEqual(
       currentURL(),
-      "admin/site_settings/category/basic?filter=menu"
+      "/admin/site_settings/category/basic?filter=menu"
     );
   });
 
@@ -189,5 +190,18 @@ acceptance("Admin - Site Settings", function (needs) {
         .requestBody,
       "blocked_onebox_domains=proper.com"
     );
+  });
+
+  test("nav menu items have titles", async (assert) => {
+    await visit("/admin/site_settings");
+
+    const navItems = queryAll(".admin-nav .nav-stacked li a");
+    navItems.each((_, item) => {
+      assert.equal(
+        item.title,
+        item.innerText,
+        "menu item has title, and the title is equal to menu item's label"
+      );
+    });
   });
 });
