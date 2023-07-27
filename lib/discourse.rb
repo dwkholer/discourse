@@ -557,7 +557,9 @@ module Discourse
       result << ":#{SiteSetting.port}"
     end
 
-    result << ":#{ENV["UNICORN_PORT"] || 3000}" if Rails.env.development? && SiteSetting.port.blank?
+    if Rails.env.development? && SiteSetting.port.blank?
+      result << ":#{ENV["DISCOURSE_PORT"] || 4200}"
+    end
 
     result
   end
