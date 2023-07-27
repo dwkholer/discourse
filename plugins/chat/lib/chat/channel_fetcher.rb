@@ -245,7 +245,8 @@ module Chat
         channel_ids: channel_ids,
         guardian: guardian,
         include_missing_memberships: true,
-        include_threads: include_threads,
+        include_threads:
+          SiteSetting.enable_experimental_chat_threaded_discussions && include_threads,
       ).report
     end
 

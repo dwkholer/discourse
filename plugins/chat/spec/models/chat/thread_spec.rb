@@ -1,7 +1,10 @@
 # frozen_string_literal: true
 
 RSpec.describe Chat::Thread do
-  before { SiteSetting.chat_enabled = true }
+  before do
+    SiteSetting.chat_enabled = true
+    SiteSetting.enable_experimental_chat_threaded_discussions = true
+  end
 
   describe ".ensure_consistency!" do
     fab!(:channel) { Fabricate(:category_channel) }
@@ -60,6 +63,12 @@ RSpec.describe Chat::Thread do
       it "does not attempt to clear caches if no replies_count caches are updated" do
         described_class.ensure_consistency!
         Chat::Thread.expects(:clear_caches!).never
+        described_class.ensure_consistency!
+      end
+
+      it "does nothing if threads are disabled" do
+        SiteSetting.enable_experimental_chat_threaded_discussions = false
+        Chat::Thread.expects(:update_counts).never
         described_class.ensure_consistency!
       end
     end

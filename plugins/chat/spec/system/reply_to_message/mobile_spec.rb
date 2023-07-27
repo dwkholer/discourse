@@ -18,6 +18,7 @@ RSpec.describe "Reply to message - channel - mobile", type: :system, mobile: tru
   end
 
   before do
+    SiteSetting.enable_experimental_chat_threaded_discussions = true
     chat_system_bootstrap
     channel_1.update!(threading_enabled: true)
     channel_1.add(current_user)

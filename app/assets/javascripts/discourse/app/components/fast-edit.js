@@ -15,23 +15,6 @@ export default class FastEdit extends Component {
     modifier: translateModKey("Meta+"),
   });
 
-  get disabled() {
-    return this.value === this.args.initialValue;
-  }
-
-  @action
-  onKeydown(event) {
-    if (event.key === "Escape") {
-      this.args.close();
-    } else if (
-      event.key === "Enter" &&
-      (event.ctrlKey || event.metaKey) &&
-      !this.disabled
-    ) {
-      this.save();
-    }
-  }
-
   @action
   updateValue(event) {
     this.value = event.target.value;
@@ -53,7 +36,7 @@ export default class FastEdit extends Component {
       popupAjaxError(error);
     } finally {
       this.isSaving = false;
-      this.args.close();
+      this.args.afterSave?.();
     }
   }
 }

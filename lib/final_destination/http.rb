@@ -23,7 +23,7 @@ class FinalDestination::HTTP < Net::HTTP
 
       @open_timeout = remaining_time
       return super
-    rescue OpenSSL::SSL::SSLError, SystemCallError, Net::OpenTimeout => e
+    rescue SystemCallError, Net::OpenTimeout => e
       debug "[FinalDestination] Error connecting to #{ip}... #{e.message}"
       was_last_attempt = index == ips.length - 1
       raise if was_last_attempt

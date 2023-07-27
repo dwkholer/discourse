@@ -105,7 +105,7 @@ export const LIGHTBOX_IMAGE_FIXTURES = {
 };
 
 export function generateLightboxObject() {
-  const trimmedLightboxItem = Object.keys(LIGHTBOX_IMAGE_FIXTURES.first).reduce(
+  const trimmedLighboxItem = Object.keys(LIGHTBOX_IMAGE_FIXTURES.first).reduce(
     (acc, key) => {
       if (key !== "height" && key !== "width" && key !== "alt") {
         acc[key] = LIGHTBOX_IMAGE_FIXTURES.first[key];
@@ -116,7 +116,7 @@ export function generateLightboxObject() {
   );
 
   return {
-    items: [{ ...trimmedLightboxItem }],
+    items: [{ ...trimmedLighboxItem }],
     startingIndex: 0,
     callbacks: {},
     options: {},

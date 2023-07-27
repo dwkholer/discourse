@@ -282,8 +282,6 @@ export function createData(store) {
     colors: "f49|c89|564897",
 
     charCounterContent: "",
-
-    selectedTags: ["apple", "orange", "potato"],
   };
 
   return _data;

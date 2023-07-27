@@ -9,6 +9,7 @@ RSpec.describe Chat::Api::ChannelThreadsController do
   before do
     SiteSetting.chat_enabled = true
     SiteSetting.chat_allowed_groups = Group::AUTO_GROUPS[:everyone]
+    SiteSetting.enable_experimental_chat_threaded_discussions = true
     Group.refresh_automatic_groups!
     sign_in(current_user)
   end
@@ -54,6 +55,15 @@ RSpec.describe Chat::Api::ChannelThreadsController do
 
       context "when channel does not have threading enabled" do
         before { thread.channel.update!(threading_enabled: false) }
+
+        it "returns 404" do
+          get "/chat/api/channels/#{thread.channel_id}/threads/#{thread.id}"
+          expect(response.status).to eq(404)
+        end
+      end
+
+      context "when enable_experimental_chat_threaded_discussions is disabled" do
+        before { SiteSetting.enable_experimental_chat_threaded_discussions = false }
 
         it "returns 404" do
           get "/chat/api/channels/#{thread.channel_id}/threads/#{thread.id}"
@@ -165,6 +175,15 @@ RSpec.describe Chat::Api::ChannelThreadsController do
         expect(response.status).to eq(404)
       end
     end
+
+    context "when enable_experimental_chat_threaded_discussions is disabled" do
+      before { SiteSetting.enable_experimental_chat_threaded_discussions = false }
+
+      it "returns 404" do
+        get "/chat/api/channels/#{public_channel.id}/threads"
+        expect(response.status).to eq(404)
+      end
+    end
   end
 
   describe "update" do
@@ -222,6 +241,15 @@ RSpec.describe Chat::Api::ChannelThreadsController do
 
     context "when channel does not have threading enabled" do
       before { public_channel.update!(threading_enabled: false) }
+
+      it "returns 404" do
+        put "/chat/api/channels/#{thread.channel_id}/threads/#{thread.id}", params: params
+        expect(response.status).to eq(404)
+      end
+    end
+
+    context "when enable_experimental_chat_threaded_discussions is disabled" do
+      before { SiteSetting.enable_experimental_chat_threaded_discussions = false }
 
       it "returns 404" do
         put "/chat/api/channels/#{thread.channel_id}/threads/#{thread.id}", params: params

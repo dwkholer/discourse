@@ -26,7 +26,6 @@ export default MultiSelectComponent.extend(TagsMixin, {
     closeOnChange: false,
     maximum: "maxTagsPerTopic",
     autoInsertNoneItem: false,
-    useHeaderFilter: false,
   },
 
   modifyComponentForRow(collection, item) {

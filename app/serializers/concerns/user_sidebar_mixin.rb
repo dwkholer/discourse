@@ -1,10 +1,15 @@
 # frozen_string_literal: true
 
 module UserSidebarMixin
-  include NavigationMenuTagsMixin
-
   def sidebar_tags
-    serialize_tags(object.visible_sidebar_tags(scope))
+    topic_count_column = Tag.topic_count_column(scope)
+
+    object
+      .visible_sidebar_tags(scope)
+      .pluck(:name, topic_count_column, :pm_topic_count)
+      .reduce([]) do |tags, sidebar_tag|
+        tags.push(name: sidebar_tag[0], pm_only: sidebar_tag[1] == 0 && sidebar_tag[2] > 0)
+      end
   end
 
   def display_sidebar_tags

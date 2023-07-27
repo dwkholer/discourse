@@ -10,5 +10,8 @@
     <Sidebar::User::MessagesSection @collapsable={{@collapsableSections}} />
   {{/if}}
 
-  <Sidebar::ApiSections @collapsable={{@collapsableSections}} />
+  <Sidebar::ApiSections
+    @sections={{this.customSections}}
+    @collapsable={{@collapsableSections}}
+  />
 </div>

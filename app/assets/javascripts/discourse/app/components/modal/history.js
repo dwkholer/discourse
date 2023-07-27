@@ -45,7 +45,6 @@ export default class History extends Component {
   get loadPreviousDisabled() {
     return (
       this.loading ||
-      !this.postRevision.previous_revision ||
       (!this.postRevision.previous_revision &&
         this.postRevision.current_revision <=
           this.postRevision.previous_revision)

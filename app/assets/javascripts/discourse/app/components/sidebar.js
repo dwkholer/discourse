@@ -1,13 +1,19 @@
 import Component from "@glimmer/component";
+import { tracked } from "@glimmer/tracking";
 import { bind } from "discourse-common/utils/decorators";
 import { inject as service } from "@ember/service";
+import { action } from "@ember/object";
+import {
+  currentPanelKey,
+  customPanels as sidebarCustomPanels,
+} from "discourse/lib/sidebar/custom-sections";
 
 export default class Sidebar extends Component {
   @service appEvents;
   @service site;
   @service siteSettings;
   @service currentUser;
-  @service sidebarState;
+  @tracked currentPanelKey = currentPanelKey;
 
   constructor() {
     super(...arguments);
@@ -17,22 +23,26 @@ export default class Sidebar extends Component {
     }
   }
 
+  get showMainPanel() {
+    return this.currentPanelKey === "main";
+  }
+
+  get currentPanel() {
+    return sidebarCustomPanels.find(
+      (panel) => panel.key === this.currentPanelKey
+    );
+  }
+
   get showSwitchPanelButtonsOnTop() {
     return this.siteSettings.default_sidebar_switch_panel_position === "top";
   }
 
   get switchPanelButtons() {
-    if (
-      this.sidebarState.combinedMode ||
-      this.sidebarState.panels.length === 1 ||
-      !this.currentUser
-    ) {
+    if (sidebarCustomPanels.length === 1 || !this.currentUser) {
       return [];
     }
 
-    return this.sidebarState.panels.filter(
-      (panel) => panel !== this.sidebarState.currentPanel
-    );
+    return sidebarCustomPanels.filter((panel) => panel !== this.currentPanel);
   }
 
   @bind
@@ -60,5 +70,10 @@ export default class Sidebar extends Component {
     if (this.site.mobileView) {
       document.removeEventListener("click", this.collapseSidebar);
     }
+  }
+
+  @action
+  setCurrentPanelKey(key) {
+    this.currentPanelKey = key;
   }
 }

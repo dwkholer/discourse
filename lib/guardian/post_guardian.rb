@@ -43,10 +43,7 @@ module PostGuardian
     already_did_flagging = taken.any? && (taken & PostActionType.notify_flag_types.values).any?
 
     result =
-      if authenticated? && post
-        # Allow anonymous users to like if feature is enabled and short-circuit otherwise
-        return SiteSetting.allow_anonymous_likes? && (action_key == :like) if @user.anonymous?
-
+      if authenticated? && post && !@user.anonymous?
         # Silenced users can't flag
         return false if is_flag && @user.silenced?
 

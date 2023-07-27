@@ -379,18 +379,11 @@ export default class ChatEmojiPicker extends Component {
     }
 
     schedule("afterRender", () => {
-      const firstEmoji = document.querySelector(
-        `.chat-emoji-picker__section[data-section="${section}"] .emoji:nth-child(1)`
-      );
-
-      const targetEmoji =
-        [
-          ...document.querySelectorAll(
-            `.chat-emoji-picker__section[data-section="${section}"] .emoji`
-          ),
-        ].find((emoji) => emoji.offsetTop > firstEmoji.offsetTop) || firstEmoji;
-
-      targetEmoji.focus();
+      document
+        .querySelector(
+          `.chat-emoji-picker__section[data-section="${section}"] .emoji:nth-child(1)`
+        )
+        .focus();
 
       later(() => {
         // iOS hack to avoid blank div when requesting section during momentum

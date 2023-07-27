@@ -38,7 +38,10 @@ RSpec.describe "Chat | composer | channel", type: :system, js: true do
     end
 
     context "when threading is enabled" do
-      before { channel_1.update!(threading_enabled: true) }
+      before do
+        SiteSetting.enable_experimental_chat_threaded_discussions = true
+        channel_1.update!(threading_enabled: true)
+      end
 
       it "replies in the thread" do
         chat_page.visit_channel(channel_1)

@@ -387,17 +387,17 @@ ar:
       thread:
         title: "العنوان"
         replies:
-          zero: "%{count} رد"
+          zero: "%{count} ردًا"
           one: "رد واحد (%{count})"
           two: "ردَّان (%{count})"
           few: "%{count} ردود"
-          many: "%{count} ردًا"
-          other: "%{count} رد"
+          many: "%{count} ردود"
+          other: "%{count} ردًا"
         settings: "الإعدادات"
         last_reply: "آخر رد"
         notifications:
           regular:
-            title: "طبيعية"
+            title: "عادية"
           tracking:
             title: "التتبُّع"
         participants_other_count:

@@ -91,7 +91,7 @@ module("Integration | Component | dialog-holder", function (hooks) {
     );
 
     // dismiss by pressing Esc
-    await triggerKeyEvent(document.activeElement, "keydown", "Escape");
+    await triggerKeyEvent(document, "keydown", "Escape");
 
     assert.ok(cancelCallbackCalled, "cancel callback called");
     assert.ok(query("#dialog-holder"), "element is still in DOM");

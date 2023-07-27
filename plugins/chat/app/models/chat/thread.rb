@@ -108,6 +108,7 @@ module Chat
     end
 
     def self.ensure_consistency!
+      return if !SiteSetting.enable_experimental_chat_threaded_discussions
       update_counts
     end
 

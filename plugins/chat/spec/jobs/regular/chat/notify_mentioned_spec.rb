@@ -429,7 +429,10 @@ describe Jobs::Chat::NotifyMentioned do
       end
 
       context "when the mention is within a thread" do
-        before { public_channel.update!(threading_enabled: true) }
+        before do
+          SiteSetting.enable_experimental_chat_threaded_discussions = true
+          public_channel.update!(threading_enabled: true)
+        end
 
         fab!(:thread) { Fabricate(:chat_thread, channel: public_channel) }
 

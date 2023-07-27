@@ -114,7 +114,6 @@ export default Component.extend(
           highlightPrevious: bind(this, this._highlightPrevious),
           highlightLast: bind(this, this._highlightLast),
           highlightFirst: bind(this, this._highlightFirst),
-          deselectLast: bind(this, this._deselectLast),
           change: bind(this, this._onChangeWrapper),
           select: bind(this, this.select),
           deselect: bind(this, this.deselect),
@@ -296,7 +295,6 @@ export default Component.extend(
       minimum: null,
       autoInsertNoneItem: true,
       closeOnChange: true,
-      useHeaderFilter: false,
       limitMatches: null,
       placement: isDocumentRTL() ? "bottom-end" : "bottom-start",
       verticalOffset: 3,
@@ -800,12 +798,6 @@ export default Component.extend(
       if (highlighted) {
         this._scrollToRow(highlighted, false);
         this.set("selectKit.highlighted", highlighted);
-      }
-    },
-
-    _deselectLast() {
-      if (this.selectKit.hasSelection) {
-        this.deselectByValue(this.value[this.value.length - 1]);
       }
     },
 

@@ -318,14 +318,14 @@ acceptance(
       );
 
       await notificationLevelDropdown.selectRowByValue("changeToIgnored");
-      assert.ok(exists(".ignore-duration-with-username-modal"));
+      assert.ok(exists(".ignore-duration-modal"));
 
       const durationDropdown = selectKit(
-        ".ignore-duration-with-username-modal .future-date-input-selector"
+        ".ignore-duration-modal .future-date-input-selector"
       );
       await durationDropdown.expand();
       await durationDropdown.selectRowByIndex(0);
-      await click(".modal-footer .btn-primary");
+      await click(".modal-footer .ignore-duration-save");
       await notificationLevelDropdown.expand();
       assert.strictEqual(
         notificationLevelDropdown.selectedRow().value(),

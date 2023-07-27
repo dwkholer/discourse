@@ -14,9 +14,7 @@ export default class IgnoreDurationModal extends Component {
 
   @tracked loading = false;
   @tracked ignoredUntil = null;
-  @tracked ignoredUsername = this.args.model.ignoredUsername;
-
-  enableSelection = this.args.model.enableSelection ?? true;
+  @tracked ignoredUsername = null;
 
   get timeShortcuts() {
     const timezone = this.currentUser.user_option.timezone;
@@ -55,7 +53,7 @@ export default class IgnoreDurationModal extends Component {
           actingUser: this.args.model.actingUser,
         })
         .then(() => {
-          this.args.model.onUserIgnored?.(this.ignoredUsername);
+          this.args.model.onUserIgnored(this.ignoredUsername);
           this.args.closeModal();
         })
         .catch(popupAjaxError)

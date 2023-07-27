@@ -620,14 +620,10 @@ class Guardian
   private
 
   def is_my_own?(obj)
-    if anonymous?
-      return(
-        SiteSetting.allow_anonymous_likes? && obj.class == PostAction && obj.is_like? &&
-          obj.user_id == @user.id
-      )
+    unless anonymous?
+      return obj.user_id == @user.id if obj.respond_to?(:user_id) && obj.user_id && @user.id
+      return obj.user == @user if obj.respond_to?(:user)
     end
-    return obj.user_id == @user.id if obj.respond_to?(:user_id) && obj.user_id && @user.id
-    return obj.user == @user if obj.respond_to?(:user)
 
     false
   end

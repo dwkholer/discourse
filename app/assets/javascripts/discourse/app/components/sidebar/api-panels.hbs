@@ -1,3 +1,6 @@
 <div class="sidebar-sections">
-  <Sidebar::ApiSections @collapsable={{@collapsableSections}} />
+  <Sidebar::ApiSections
+    @sections={{this.customSections}}
+    @collapsable={{@collapsableSections}}
+  />
 </div>

@@ -32,6 +32,10 @@ export function addSidebarPanel(func) {
   customPanels.push(new panelClass());
 }
 
+export function setSidebarPanel(name) {
+  currentPanelKey = name;
+}
+
 export function addSidebarSection(func, panelKey) {
   const panel = customPanels.find((p) => p.key === panelKey);
   if (!panel) {

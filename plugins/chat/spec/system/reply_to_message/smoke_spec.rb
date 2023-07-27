@@ -11,6 +11,7 @@ RSpec.describe "Reply to message - smoke", type: :system do
   fab!(:original_message) { Fabricate(:chat_message, chat_channel: channel_1) }
 
   before do
+    SiteSetting.enable_experimental_chat_threaded_discussions = true
     chat_system_bootstrap
     channel_1.add(user_1)
     channel_1.add(user_2)

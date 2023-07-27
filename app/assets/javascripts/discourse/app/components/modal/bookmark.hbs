@@ -77,22 +77,24 @@
   </:body>
 
   <:footer>
-    <DButton
-      id="save-bookmark"
-      @label="bookmarks.save"
-      class="btn-primary"
-      @action={{this.saveAndClose}}
-    />
-    <DModalCancel @close={{action "closeWithoutSavingBookmark"}} />
-    {{#if this.showDelete}}
+    <div class="control-group">
       <DButton
-        id="delete-bookmark"
-        @icon="trash-alt"
-        class="delete-bookmark btn-danger"
-        @action={{this.delete}}
-        @ariaLabel="post.bookmarks.actions.delete_bookmark.name"
-        @title="post.bookmarks.actions.delete_bookmark.name"
+        id="save-bookmark"
+        @label="bookmarks.save"
+        class="btn-primary"
+        @action={{this.saveAndClose}}
       />
-    {{/if}}
+      <DModalCancel @close={{action "closeWithoutSavingBookmark"}} />
+      {{#if this.showDelete}}
+        <DButton
+          id="delete-bookmark"
+          @icon="trash-alt"
+          class="delete-bookmark btn-danger"
+          @action={{this.delete}}
+          @ariaLabel="post.bookmarks.actions.delete_bookmark.name"
+          @title="post.bookmarks.actions.delete_bookmark.name"
+        />
+      {{/if}}
+    </div>
   </:footer>
 </DModal>

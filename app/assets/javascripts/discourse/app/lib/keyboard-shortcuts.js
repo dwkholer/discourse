@@ -314,7 +314,7 @@ export default {
   },
 
   quoteReply() {
-    if (this.isPostTextSelected) {
+    if (this.isPostTextSelected()) {
       this.appEvents.trigger("quote-button:quote");
       return false;
     }
@@ -330,7 +330,7 @@ export default {
   },
 
   editPost() {
-    if (this.siteSettings.enable_fast_edit && this.isPostTextSelected) {
+    if (this.siteSettings.enable_fast_edit && this.isPostTextSelected()) {
       this.appEvents.trigger("quote-button:edit");
       return false;
     } else {
@@ -556,9 +556,9 @@ export default {
     }
   },
 
-  get isPostTextSelected() {
+  isPostTextSelected() {
     const topicController = getOwner(this).lookup("controller:topic");
-    return !!topicController.quoteState.postId;
+    return !!topicController?.get("quoteState")?.postId;
   },
 
   sendToSelectedPost(action, elem) {

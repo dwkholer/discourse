@@ -108,6 +108,7 @@ import { addSectionLink as addCustomCommunitySectionLink } from "discourse/lib/s
 import {
   addSidebarPanel,
   addSidebarSection,
+  setSidebarPanel,
 } from "discourse/lib/sidebar/custom-sections";
 import {
   registerCustomCategoryLockIcon,
@@ -2067,23 +2068,7 @@ class PluginApi {
    * Support for setting a Sidebar panel.
    */
   setSidebarPanel(name) {
-    this._lookupContainer("service:sidebar-state").setPanel(name);
-  }
-
-  /**
-   * EXPERIMENTAL. Do not use.
-   * Set combined sidebar section mode. In this mode, sections from all panels are displayed together.
-   */
-  setCombinedSidebarMode() {
-    this._lookupContainer("service:sidebar-state").setCombinedMode();
-  }
-
-  /**
-   * EXPERIMENTAL. Do not use.
-   * Set separated sidebar section mode. In this mode, only sections from the current panel are displayed.
-   */
-  setSeparatedSidebarMode() {
-    this._lookupContainer("service:sidebar-state").setSeparatedMode();
+    setSidebarPanel(name);
   }
 
   /**

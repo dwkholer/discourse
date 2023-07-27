@@ -112,8 +112,11 @@ RSpec.describe Chat::ChannelViewBuilder do
       it { is_expected.to fail_a_contract }
     end
 
-    context "when channel has threading_enabled true" do
-      before { channel.update!(threading_enabled: true) }
+    context "when channel has threading_enabled and enable_experimental_chat_threaded_discussions is true" do
+      before do
+        channel.update!(threading_enabled: true)
+        SiteSetting.enable_experimental_chat_threaded_discussions = true
+      end
 
       it "threads_enabled is true" do
         expect(result.threads_enabled).to eq(true)
@@ -317,7 +320,10 @@ RSpec.describe Chat::ChannelViewBuilder do
         end
 
         context "when not including thread messages" do
-          before { channel.update!(threading_enabled: true) }
+          before do
+            channel.update!(threading_enabled: true)
+            SiteSetting.enable_experimental_chat_threaded_discussions = true
+          end
 
           it "does not include the target message" do
             expect(result.view.chat_messages).to eq(
