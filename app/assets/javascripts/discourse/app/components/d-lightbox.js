@@ -358,6 +358,13 @@ export default class DLightbox extends Component {
   }
 
   @bind
+  onKeydown(event) {
+    if (event.key === KEYBOARD_SHORTCUTS.CLOSE && document.fullscreenEnabled) {
+      event.preventDefault();
+    }
+  }
+
+  @bind
   onKeyup({ key }) {
     if (KEYBOARD_SHORTCUTS.PREVIOUS.includes(key)) {
       return this.showPreviousItem();
